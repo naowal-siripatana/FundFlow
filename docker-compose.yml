@@ -1,0 +1,43 @@
+# Local development only. Credentials here are throwaway dev values.
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "FundFlow_Dev_Passw0rd!"
+    ports:
+      - "1433:1433"
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"   # management UI: http://localhost:15672 (guest / guest)
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: .
+      dockerfile: src/FundFlow.Api/Dockerfile
+    environment:
+      ConnectionStrings__Sql: "Server=sqlserver,1433;Database=FundFlow;User Id=sa;Password=FundFlow_Dev_Passw0rd!;TrustServerCertificate=True"
+      ConnectionStrings__Redis: "redis:6379"
+      ConnectionStrings__RabbitMq: "amqp://guest:guest@rabbitmq:5672"
+    ports:
+      - "8080:8080"
+    depends_on: [sqlserver, rabbitmq, redis]
+
+  worker:
+    build:
+      context: .
+      dockerfile: src/FundFlow.Worker/Dockerfile
+    environment:
+      ConnectionStrings__Sql: "Server=sqlserver,1433;Database=FundFlow;User Id=sa;Password=FundFlow_Dev_Passw0rd!;TrustServerCertificate=True"
+      ConnectionStrings__RabbitMq: "amqp://guest:guest@rabbitmq:5672"
+    depends_on: [api, rabbitmq]
+    deploy:
+      replicas: 2      # two consumers: shows the idempotent, lock-protected processing

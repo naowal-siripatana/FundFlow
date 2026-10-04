@@ -1,0 +1,22 @@
+### Health
+GET http://localhost:8080/health
+
+### NAV (call twice: second response has fromCache = true)
+GET http://localhost:8080/funds/FF-EQUITY/nav
+
+### Subscribe 1,000 THB (send twice with the same key -> same order back, no duplicate)
+POST http://localhost:8080/orders
+Content-Type: application/json
+Idempotency-Key: demo-sub-001
+
+{ "fundCode": "FF-EQUITY", "type": "Subscription", "amount": 1000 }
+
+### Redeem 100.5 units
+POST http://localhost:8080/orders
+Content-Type: application/json
+Idempotency-Key: demo-red-001
+
+{ "fundCode": "FF-BOND", "type": "Redemption", "units": 100.5 }
+
+### Check status (paste the id from the response above)
+GET http://localhost:8080/orders/{{orderId}}
